@@ -3,11 +3,11 @@ from sqlalchemy import select
 from src.config.database import get_db
 from src.models import Job
 from src.schemas.job import JobInput
-from src.middlewares.auth import current_user, can_write, admin_only
+from src.middlewares.auth import current_user, can_write, admin_only, staff_only
 from src.services import jobs
 from src.services.audit import record
 from src.utils.serialization import job_dict
-router=APIRouter(prefix='/jobs')
+router=APIRouter(prefix='/jobs',dependencies=[Depends(staff_only)])
 @router.get('')
 def listing(db=Depends(get_db),u=Depends(current_user)):
     return [job_dict(j) for j in db.scalars(select(Job).order_by(Job.id.desc()).limit(100))]

@@ -2,15 +2,16 @@ import time, json
 from sqlalchemy import select, func
 from src.config.database import Session
 from migrations.initial import migrate
-from src.models import User, Dataset, Job, Report, Delivery, Audit
+from src.models import User, Dataset, Job, Report, Delivery, Audit, PrivacyBudget, DpGrant
 from src.services.business import metadata, seed_records, analyze
+from src.services.dp import fingerprint
 from src.services.reports import deliver
 from src.utils.security import hash_password
 from src.utils.serialization import checksum
 def seed():
     migrate()
     with Session() as db:
-        for role,name in [('admin','林知 · 业务负责人'),('analyst','陈舟 · 分析员'),('viewer','周禾 · 观察员')]:
+        for role,name in [('admin','林知 · 业务负责人'),('analyst','陈舟 · 分析员'),('viewer','周禾 · 观察员'),('consultant','顾远 · 外部顾问')]:
             email=role+'@demo.local'
             if not db.scalar(select(User).where(User.email==email)):
                 db.add(User(email=email,name=name,role=role,password=hash_password('Demo123!')))
@@ -31,6 +32,12 @@ def seed():
             r=Report(name='每日业务复核简报',job_id=j.id,destination='业务复核组 · 本地收件箱',interval_seconds=86400,next_run=time.time()+86400,enabled=True)
             db.add(r);db.flush();deliver(db,r)
             db.add(Audit(actor='seed',action='demo.baseline',detail={'dataset':d.id},at=time.time()))
+        fp=fingerprint(d.records)
+        if not db.scalar(select(PrivacyBudget).where(PrivacyBudget.fingerprint==fp)):
+            db.add(PrivacyBudget(fingerprint=fp,label=d.name,clip_bound=600.0,total_epsilon=5.0,updated_at=time.time()))
+        consultant=db.scalar(select(User).where(User.role=='consultant'))
+        if not db.scalar(select(DpGrant).where(DpGrant.consultant_id==consultant.id,DpGrant.fingerprint==fp)):
+            db.add(DpGrant(consultant_id=consultant.id,dataset_id=d.id,fingerprint=fp,label=d.name,max_epsilon=0.5,active=True,created_by='seed',created_at=time.time()))
         db.commit()
         counts={model.__tablename__:db.scalar(select(func.count()).select_from(model)) for model in [User,Dataset,Job,Report,Delivery,Audit]}
         print(json.dumps(counts,ensure_ascii=False))

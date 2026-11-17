@@ -17,3 +17,9 @@ def can_write(user=Depends(current_user)):
 def admin_only(user=Depends(current_user)):
     if user.role != 'admin': raise HTTPException(403, '需要业务负责人批准')
     return user
+def staff_only(user=Depends(current_user)):
+    if user.role == 'consultant': raise HTTPException(403, '顾问仅可使用已授权的隐私查询入口，无权访问原始数据、试算与简报')
+    return user
+def consultant_only(user=Depends(current_user)):
+    if user.role != 'consultant': raise HTTPException(403, '该入口仅面向获授权的外部顾问')
+    return user

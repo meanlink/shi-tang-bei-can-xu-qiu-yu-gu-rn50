@@ -3,8 +3,17 @@ class Role(str, Enum):
     admin = 'admin'
     analyst = 'analyst'
     viewer = 'viewer'
+    consultant = 'consultant'
 class JobStatus(str, Enum):
     queued = 'queued'
     running = 'running'
     completed = 'completed'
     failed = 'failed'
+class DpQueryStatus(str, Enum):
+    pending = 'pending'
+    published = 'published'
+    failed = 'failed'
+class LedgerAction(str, Enum):
+    reserve = 'reserve'
+    spend = 'spend'
+    refund = 'refund'

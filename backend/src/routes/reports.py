@@ -6,11 +6,11 @@ from src.config.database import get_db
 from src.config.settings import ARTIFACT_DIR
 from src.models import Report, Delivery
 from src.schemas.report import ReportInput
-from src.middlewares.auth import current_user, admin_only
+from src.middlewares.auth import current_user, admin_only, staff_only
 from src.services import reports
 from src.services.audit import record
 from src.utils.serialization import report_dict, delivery_dict
-router=APIRouter()
+router=APIRouter(dependencies=[Depends(staff_only)])
 @router.get('/reports')
 def listing(db=Depends(get_db),u=Depends(current_user)):
     return [report_dict(r) for r in db.scalars(select(Report).order_by(Report.id.desc()))]
